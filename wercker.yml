@@ -53,4 +53,5 @@ build:
   after-steps:
 
     # Post the result to Slack
-    - slack-notifier
+    - slack-notifier:
+        url: $SLACK_URL
