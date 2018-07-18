@@ -39,11 +39,11 @@ func newGraph(isDirected bool) Graph {
 	}
 }
 
-func NewDirectedGraph() Graph {
+func NewDirected() Graph {
 	return newGraph(true)
 }
 
-func NewUndirectedGraph() Graph {
+func NewUndirected() Graph {
 	return newGraph(false)
 }
 
