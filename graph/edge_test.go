@@ -3,8 +3,8 @@ package graph
 import "testing"
 
 func TestNewEdge(t *testing.T) {
-	nTail := NewNode("1")
-	nHead := NewNode("2")
+	nTail := &node{StringID("t")}
+	nHead := &node{StringID("h")}
 	weight := 1.0
 
 	e := NewEdge(nTail, nHead, weight)
