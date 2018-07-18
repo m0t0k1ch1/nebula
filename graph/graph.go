@@ -11,6 +11,7 @@ var (
 )
 
 type Graph interface {
+	IsDirected() bool
 	GetNode(ID) (Node, error)
 	GetNodes() (map[ID]Node, error)
 	GetTails(ID) (map[ID]Node, error)
@@ -45,6 +46,10 @@ func NewDirected() Graph {
 
 func NewUndirected() Graph {
 	return newGraph(false)
+}
+
+func (g *graph) IsDirected() bool {
+	return g.isDirected
 }
 
 func (g *graph) isExistNode(id ID) (exists bool) {
