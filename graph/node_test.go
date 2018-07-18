@@ -2,6 +2,12 @@ package graph
 
 import "testing"
 
+func newTestNode(id string) *node {
+	return &node{
+		id: StringID(id),
+	}
+}
+
 func TestNewNode(t *testing.T) {
 	id := StringID("1")
 
