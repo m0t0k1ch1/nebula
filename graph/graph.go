@@ -195,7 +195,7 @@ func (g *graph) AddEdge(idTail, idHead ID, weight float64) error {
 	}
 
 	g.addEdge(idTail, idHead, weight)
-	if !g.isDirected {
+	if !g.IsDirected() {
 		g.addEdge(idHead, idTail, weight)
 	}
 
@@ -206,12 +206,18 @@ func (g *graph) removeEdge(idTail, idHead ID) {
 	if _, ok := g.idToTails[idHead]; ok {
 		if _, ok := g.idToTails[idHead][idTail]; ok {
 			delete(g.idToTails[idHead], idTail)
+			if len(g.idToTails[idHead]) == 0 {
+				delete(g.idToTails, idHead)
+			}
 		}
 	}
 
 	if _, ok := g.idToHeads[idTail]; ok {
 		if _, ok := g.idToHeads[idTail][idHead]; ok {
 			delete(g.idToHeads[idTail], idHead)
+			if len(g.idToHeads[idTail]) == 0 {
+				delete(g.idToHeads, idTail)
+			}
 		}
 	}
 
@@ -227,7 +233,7 @@ func (g *graph) RemoveEdge(idTail, idHead ID) error {
 	}
 
 	g.removeEdge(idTail, idHead)
-	if !g.isDirected {
+	if !g.IsDirected() {
 		g.removeEdge(idHead, idTail)
 	}
 
