@@ -83,15 +83,19 @@ func TestIsDirected(t *testing.T) {
 		isDirected: true,
 	}
 
-	if !g.IsDirected() {
-		t.Errorf("expected: %t, actual: %t", true, g.IsDirected())
-	}
+	t.Run("directed", func(t *testing.T) {
+		if !g.IsDirected() {
+			t.Errorf("expected: %t, actual: %t", true, g.IsDirected())
+		}
+	})
 
 	g.isDirected = false
 
-	if g.IsDirected() {
-		t.Errorf("expected: %t, actual: %t", false, g.IsDirected())
-	}
+	t.Run("undirected", func(t *testing.T) {
+		if g.IsDirected() {
+			t.Errorf("expected: %t, actual: %t", false, g.IsDirected())
+		}
+	})
 }
 
 func TestGetNode(t *testing.T) {
@@ -126,26 +130,27 @@ func TestGetNode(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		g, in, out := tc.graph, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, in, out := tc.graph, tc.in, tc.out
 
-		n, err := g.GetNode(in.id)
-		if err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		if out.node == nil {
-			if n != nil {
-				t.Errorf("expected: nil, actual: non-nil")
+			n, err := g.GetNode(in.id)
+			if err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
 			}
-		} else {
-			if n == nil {
-				t.Errorf("expected: non-nil, actual: nil")
+			if out.node == nil {
+				if n != nil {
+					t.Errorf("expected: nil, actual: non-nil")
+				}
+			} else {
+				if n == nil {
+					t.Errorf("expected: non-nil, actual: nil")
+				}
+				if n.ID() != in.id {
+					t.Errorf("expected: %q, actual: %q", in.id, n.ID())
+				}
 			}
-			if n.ID() != in.id {
-				t.Errorf("expected: %q, actual: %q", in.id, n.ID())
-			}
-		}
+		})
 	}
 }
 
@@ -216,15 +221,16 @@ func TestGetTails(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		g, in, out := tc.graph, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, in, out := tc.graph, tc.in, tc.out
 
-		idToNodes, err := g.GetTails(in.id)
-		if err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		testIDToNodesEquality(t, out.idToNodes, idToNodes)
+			idToNodes, err := g.GetTails(in.id)
+			if err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			testIDToNodesEquality(t, out.idToNodes, idToNodes)
+		})
 	}
 }
 
@@ -280,15 +286,16 @@ func TestGetHeads(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		g, in, out := tc.graph, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, in, out := tc.graph, tc.in, tc.out
 
-		idToNodes, err := g.GetHeads(in.id)
-		if err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		testIDToNodesEquality(t, out.idToNodes, idToNodes)
+			idToNodes, err := g.GetHeads(in.id)
+			if err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			testIDToNodesEquality(t, out.idToNodes, idToNodes)
+		})
 	}
 }
 
@@ -325,14 +332,15 @@ func TestAddNode(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
 
-		if err := actual.AddNode(in.node); err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		testGraphEquality(t, expected, actual)
+			if err := actual.AddNode(in.node); err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			testGraphEquality(t, expected, actual)
+		})
 	}
 }
 
@@ -409,14 +417,15 @@ func TestRemoveNode(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
 
-		if err := tc.actual.RemoveNode(in.id); err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		testGraphEquality(t, expected, actual)
+			if err := tc.actual.RemoveNode(in.id); err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			testGraphEquality(t, expected, actual)
+		})
 	}
 }
 
@@ -641,14 +650,15 @@ func TestAddEdge(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
 
-		if err := actual.AddEdge(in.idTail, in.idHead, in.weight); err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		testGraphEquality(t, expected, actual)
+			if err := actual.AddEdge(in.idTail, in.idHead, in.weight); err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			testGraphEquality(t, expected, actual)
+		})
 	}
 }
 
@@ -842,14 +852,15 @@ func TestRemoveEdge(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, expected, in, out := tc.actual, tc.expected, tc.in, tc.out
 
-		if err := actual.RemoveEdge(in.idTail, in.idHead); err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		testGraphEquality(t, expected, actual)
+			if err := actual.RemoveEdge(in.idTail, in.idHead); err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			testGraphEquality(t, expected, actual)
+		})
 	}
 }
 
@@ -935,16 +946,17 @@ func TestGetWeight(t *testing.T) {
 		},
 	}
 
-	for i, tc := range testCases {
-		t.Logf("[%d] %s", i, tc.name)
-		g, in, out := tc.graph, tc.in, tc.out
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, in, out := tc.graph, tc.in, tc.out
 
-		weight, err := g.GetWeight(in.idTail, in.idHead)
-		if err != out.err {
-			t.Errorf("expected: %v, actual: %v", out.err, err)
-		}
-		if weight != out.weight {
-			t.Errorf("expected: %f, actual: %f", out.weight, weight)
-		}
+			weight, err := g.GetWeight(in.idTail, in.idHead)
+			if err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+			}
+			if weight != out.weight {
+				t.Errorf("expected: %f, actual: %f", out.weight, weight)
+			}
+		})
 	}
 }
