@@ -18,10 +18,10 @@ type Graph interface {
 	GetHeads(ID) (map[ID]Node, error)
 	AddNode(Node) error
 	RemoveNode(ID) error
+	GetEdge(ID, ID) (Edge, error)
 	GetEdges() (map[ID]map[ID]Edge, error)
 	AddEdge(ID, ID, float64) error
 	RemoveEdge(ID, ID) error
-	GetWeight(ID, ID) (float64, error)
 }
 
 type graph struct {
@@ -152,6 +152,23 @@ func (g *graph) newEdge(idTail, idHead ID, weight float64) Edge {
 	return newEdge(g.IsDirected(), g.idToNodes[idTail], g.idToNodes[idHead], weight)
 }
 
+func (g *graph) GetEdge(idTail, idHead ID) (Edge, error) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if !g.isExistNode(idTail) || !g.isExistNode(idHead) {
+		return nil, ErrNodeNotExist
+	}
+
+	if _, ok := g.idToHeads[idTail]; ok {
+		if _, ok := g.idToHeads[idTail][idHead]; ok {
+			return g.idToHeads[idTail][idHead], nil
+		}
+	}
+
+	return nil, ErrEdgeNotExist
+}
+
 func (g *graph) GetEdges() (map[ID]map[ID]Edge, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
@@ -241,21 +258,4 @@ func (g *graph) RemoveEdge(idTail, idHead ID) error {
 	}
 
 	return nil
-}
-
-func (g *graph) GetWeight(idTail, idHead ID) (float64, error) {
-	g.mu.RLock()
-	defer g.mu.RUnlock()
-
-	if !g.isExistNode(idTail) || !g.isExistNode(idHead) {
-		return 0, ErrNodeNotExist
-	}
-
-	if _, ok := g.idToHeads[idTail]; ok {
-		if _, ok := g.idToHeads[idTail][idHead]; ok {
-			return g.idToHeads[idTail][idHead].Weight(), nil
-		}
-	}
-
-	return 0, ErrEdgeNotExist
 }
