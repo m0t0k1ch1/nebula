@@ -25,18 +25,18 @@ type Graph interface {
 
 type graph struct {
 	mu         sync.RWMutex
+	isDirected bool
 	idToNodes  map[ID]Node
 	idToTails  map[ID]map[ID]float64
 	idToHeads  map[ID]map[ID]float64
-	isDirected bool
 }
 
 func newGraph(isDirected bool) Graph {
 	return &graph{
+		isDirected: isDirected,
 		idToNodes:  make(map[ID]Node),
 		idToTails:  make(map[ID]map[ID]float64),
 		idToHeads:  make(map[ID]map[ID]float64),
-		isDirected: isDirected,
 	}
 }
 
