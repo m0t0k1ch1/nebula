@@ -8,6 +8,12 @@ func newTestNode(id string) *node {
 	}
 }
 
+func testNodeEquality(t *testing.T, expected, actual Node) {
+	if actual.ID() != expected.ID() {
+		t.Errorf("expected: %q, actual: %q", expected.ID(), actual.ID())
+	}
+}
+
 func TestNewNode(t *testing.T) {
 	id := StringID("1")
 

@@ -33,10 +33,7 @@ func testIDToNodesEquality(t *testing.T, expected, actual map[ID]Node) {
 			t.Errorf("expected: %t, actual: %t", true, ok)
 			continue
 		}
-
-		if actual[id].ID() != n.ID() {
-			t.Errorf("expected: %q, actual: %q", n.ID(), actual[id].ID())
-		}
+		testNodeEquality(t, n, actual[id])
 	}
 }
 
@@ -144,6 +141,7 @@ func TestGraph_GetNode(t *testing.T) {
 			n, err := g.GetNode(in.id)
 			if err != out.err {
 				t.Errorf("expected: %v, actual: %v", out.err, err)
+				return
 			}
 			if out.node == nil {
 				if n != nil {
@@ -152,10 +150,9 @@ func TestGraph_GetNode(t *testing.T) {
 			} else {
 				if n == nil {
 					t.Errorf("expected: non-nil, actual: nil")
+					return
 				}
-				if n.ID() != in.id {
-					t.Errorf("expected: %q, actual: %q", in.id, n.ID())
-				}
+				testNodeEquality(t, out.node, n)
 			}
 		})
 	}
@@ -442,6 +439,114 @@ func TestGraph_RemoveNode(t *testing.T) {
 				t.Errorf("expected: %v, actual: %v", out.err, err)
 			}
 			testGraphEquality(t, expected, actual)
+		})
+	}
+}
+
+func TestGraph_GetEdge(t *testing.T) {
+	type input struct {
+		idTail StringID
+		idHead StringID
+	}
+	type output struct {
+		edge Edge
+		err  error
+	}
+
+	n1 := newTestNode("1")
+	n2 := newTestNode("2")
+	n3 := newTestNode("3")
+	e12 := newTestEdgeGenerator("1", "2")
+	e13 := newTestEdgeGenerator("1", "3")
+
+	testCases := []struct {
+		name  string
+		graph *graph
+		in    input
+		out   output
+	}{
+		{
+			"success",
+			&graph{
+				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				idToTails: map[ID]map[ID]Edge{
+					n2.id: {n1.id: e12(true, 1.0)},
+					n3.id: {n1.id: e13(true, 1.0)},
+				},
+				idToHeads: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1.0), n3.id: e13(true, 1.0)},
+				},
+			},
+			input{n1.id, n2.id},
+			output{e12(true, 1.0), nil},
+		},
+		{
+			"failure: non-existent tail node",
+			&graph{
+				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				idToTails: map[ID]map[ID]Edge{
+					n2.id: {n1.id: e12(true, 1.2)},
+					n3.id: {n1.id: e13(true, 1.3)},
+				},
+				idToHeads: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
+				},
+			},
+			input{n3.id, n2.id},
+			output{nil, ErrNodeNotExist},
+		},
+		{
+			"failure: non-existent head node",
+			&graph{
+				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				idToTails: map[ID]map[ID]Edge{
+					n2.id: {n1.id: e12(true, 1.2)},
+					n3.id: {n1.id: e13(true, 1.3)},
+				},
+				idToHeads: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
+				},
+			},
+			input{n1.id, n3.id},
+			output{nil, ErrNodeNotExist},
+		},
+		{
+			"failure: non-existent edge",
+			&graph{
+				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				idToTails: map[ID]map[ID]Edge{
+					n2.id: {n1.id: e12(true, 1.2)},
+					n3.id: {n1.id: e13(true, 1.3)},
+				},
+				idToHeads: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
+				},
+			},
+			input{n2.id, n3.id},
+			output{nil, ErrEdgeNotExist},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, in, out := tc.graph, tc.in, tc.out
+
+			e, err := g.GetEdge(in.idTail, in.idHead)
+			if err != out.err {
+				t.Errorf("expected: %v, actual: %v", out.err, err)
+				return
+			}
+			if out.edge == nil {
+				if e != nil {
+					t.Errorf("expected: nil, actual: non-nil")
+				}
+			} else {
+				if e == nil {
+					t.Errorf("expected: non-nil, actual: nil")
+					return
+				}
+				testEdgeEquality(t, out.edge, e)
+			}
 		})
 	}
 }
@@ -893,105 +998,6 @@ func TestGraph_RemoveEdge(t *testing.T) {
 				t.Errorf("expected: %v, actual: %v", out.err, err)
 			}
 			testGraphEquality(t, expected, actual)
-		})
-	}
-}
-
-func TestGraph_GetWeight(t *testing.T) {
-	type input struct {
-		idTail StringID
-		idHead StringID
-	}
-	type output struct {
-		weight float64
-		err    error
-	}
-
-	n1 := newTestNode("1")
-	n2 := newTestNode("2")
-	n3 := newTestNode("3")
-	e12 := newTestEdgeGenerator("1", "2")
-	e13 := newTestEdgeGenerator("1", "3")
-
-	testCases := []struct {
-		name  string
-		graph *graph
-		in    input
-		out   output
-	}{
-		{
-			"success",
-			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
-				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
-				},
-			},
-			input{n1.id, n2.id},
-			output{1.2, nil},
-		},
-		{
-			"failure: non-existent tail node",
-			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
-				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
-				},
-			},
-			input{n3.id, n2.id},
-			output{0, ErrNodeNotExist},
-		},
-		{
-			"failure: non-existent head node",
-			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
-				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
-				},
-			},
-			input{n1.id, n3.id},
-			output{0, ErrNodeNotExist},
-		},
-		{
-			"failure: non-existent edge",
-			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
-				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
-				},
-			},
-			input{n2.id, n3.id},
-			output{0, ErrEdgeNotExist},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			g, in, out := tc.graph, tc.in, tc.out
-
-			weight, err := g.GetWeight(in.idTail, in.idHead)
-			if err != out.err {
-				t.Errorf("expected: %v, actual: %v", out.err, err)
-			}
-			if weight != out.weight {
-				t.Errorf("expected: %f, actual: %f", out.weight, weight)
-			}
 		})
 	}
 }
