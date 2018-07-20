@@ -14,6 +14,15 @@ func testInitialized(t *testing.T, g *graph) {
 	}
 }
 
+func testGraphEquality(t *testing.T, expected, actual *graph) {
+	testIDToNodesEquality(t, expected.idToNodes, actual.idToNodes)
+	testIDToEndsEquality(t, expected.idToTails, actual.idToTails)
+	testIDToEndsEquality(t, expected.idToHeads, actual.idToHeads)
+	if expected.isDirected != actual.isDirected {
+		t.Errorf("expected: %t, actual: %t", expected.isDirected, actual.isDirected)
+	}
+}
+
 func testIDToNodesEquality(t *testing.T, expected, actual map[ID]Node) {
 	if len(actual) != len(expected) {
 		t.Errorf("expected: %d, actual: %d", len(expected), len(actual))
@@ -323,7 +332,7 @@ func TestAddNode(t *testing.T) {
 		if err := actual.AddNode(in.node); err != out.err {
 			t.Errorf("expected: %v, actual: %v", out.err, err)
 		}
-		testIDToNodesEquality(t, expected.idToNodes, actual.idToNodes)
+		testGraphEquality(t, expected, actual)
 	}
 }
 
@@ -407,9 +416,7 @@ func TestRemoveNode(t *testing.T) {
 		if err := tc.actual.RemoveNode(in.id); err != out.err {
 			t.Errorf("expected: %v, actual: %v", out.err, err)
 		}
-		testIDToNodesEquality(t, expected.idToNodes, actual.idToNodes)
-		testIDToEndsEquality(t, expected.idToTails, actual.idToTails)
-		testIDToEndsEquality(t, expected.idToHeads, actual.idToHeads)
+		testGraphEquality(t, expected, actual)
 	}
 }
 
@@ -641,8 +648,7 @@ func TestAddEdge(t *testing.T) {
 		if err := actual.AddEdge(in.idTail, in.idHead, in.weight); err != out.err {
 			t.Errorf("expected: %v, actual: %v", out.err, err)
 		}
-		testIDToEndsEquality(t, expected.idToTails, actual.idToTails)
-		testIDToEndsEquality(t, expected.idToHeads, actual.idToHeads)
+		testGraphEquality(t, expected, actual)
 	}
 }
 
@@ -843,8 +849,7 @@ func TestRemoveEdge(t *testing.T) {
 		if err := actual.RemoveEdge(in.idTail, in.idHead); err != out.err {
 			t.Errorf("expected: %v, actual: %v", out.err, err)
 		}
-		testIDToEndsEquality(t, expected.idToTails, actual.idToTails)
-		testIDToEndsEquality(t, expected.idToHeads, actual.idToHeads)
+		testGraphEquality(t, expected, actual)
 	}
 }
 
