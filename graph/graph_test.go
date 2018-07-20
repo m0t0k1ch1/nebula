@@ -78,7 +78,7 @@ func TestNewUndirecred(t *testing.T) {
 	testInitialized(t, g)
 }
 
-func TestIsDirected(t *testing.T) {
+func TestGraph_IsDirected(t *testing.T) {
 	g := &graph{
 		isDirected: true,
 	}
@@ -98,7 +98,7 @@ func TestIsDirected(t *testing.T) {
 	})
 }
 
-func TestGetNode(t *testing.T) {
+func TestGraph_GetNode(t *testing.T) {
 	type input struct {
 		id StringID
 	}
@@ -154,7 +154,7 @@ func TestGetNode(t *testing.T) {
 	}
 }
 
-func TestGetNodes(t *testing.T) {
+func TestGraph_GetNodes(t *testing.T) {
 	n1 := newTestNode("1")
 	n2 := newTestNode("2")
 	expected := map[ID]Node{n1.id: n1, n2.id: n2}
@@ -169,7 +169,7 @@ func TestGetNodes(t *testing.T) {
 	testIDToNodesEquality(t, expected, actual)
 }
 
-func TestGetTails(t *testing.T) {
+func TestGraph_GetTails(t *testing.T) {
 	type input struct {
 		id StringID
 	}
@@ -234,7 +234,7 @@ func TestGetTails(t *testing.T) {
 	}
 }
 
-func TestGetHeads(t *testing.T) {
+func TestGraph_GetHeads(t *testing.T) {
 	type input struct {
 		id StringID
 	}
@@ -299,7 +299,7 @@ func TestGetHeads(t *testing.T) {
 	}
 }
 
-func TestAddNode(t *testing.T) {
+func TestGraph_AddNode(t *testing.T) {
 	type input struct {
 		node *node
 	}
@@ -344,7 +344,7 @@ func TestAddNode(t *testing.T) {
 	}
 }
 
-func TestRemoveNode(t *testing.T) {
+func TestGraph_RemoveNode(t *testing.T) {
 	type input struct {
 		id StringID
 	}
@@ -429,7 +429,7 @@ func TestRemoveNode(t *testing.T) {
 	}
 }
 
-func TestAddEdge(t *testing.T) {
+func TestGraph_AddEdge(t *testing.T) {
 	type input struct {
 		idTail StringID
 		idHead StringID
@@ -662,7 +662,7 @@ func TestAddEdge(t *testing.T) {
 	}
 }
 
-func TestRemoveEdge(t *testing.T) {
+func TestGraph_RemoveEdge(t *testing.T) {
 	type input struct {
 		idTail StringID
 		idHead StringID
@@ -864,7 +864,7 @@ func TestRemoveEdge(t *testing.T) {
 	}
 }
 
-func TestGetWeight(t *testing.T) {
+func TestGraph_GetWeight(t *testing.T) {
 	type input struct {
 		idTail StringID
 		idHead StringID
