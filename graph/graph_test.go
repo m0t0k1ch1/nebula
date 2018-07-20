@@ -446,6 +446,25 @@ func TestGraph_RemoveNode(t *testing.T) {
 	}
 }
 
+func TestGraph_GetEdges(t *testing.T) {
+	n1 := newTestNode("1")
+	n2 := newTestNode("2")
+	n3 := newTestNode("3")
+	expected := map[ID]map[ID]Edge{
+		n1.id: {n2.id: newTestEdge(true, "1", "2", 1.2)},
+		n2.id: {n3.id: newTestEdge(true, "2", "3", 2.3)},
+	}
+	g := &graph{
+		idToHeads: expected,
+	}
+
+	actual, err := g.GetEdges()
+	if err != nil {
+		t.Fatal(err)
+	}
+	testIDToEndsEquality(t, expected, actual)
+}
+
 func TestGraph_AddEdge(t *testing.T) {
 	type input struct {
 		idTail StringID
