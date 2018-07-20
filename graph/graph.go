@@ -18,6 +18,7 @@ type Graph interface {
 	GetHeads(ID) (map[ID]Node, error)
 	AddNode(Node) error
 	RemoveNode(ID) error
+	GetEdges() (map[ID]map[ID]Edge, error)
 	AddEdge(ID, ID, float64) error
 	RemoveEdge(ID, ID) error
 	GetWeight(ID, ID) (float64, error)
@@ -27,16 +28,16 @@ type graph struct {
 	mu         sync.RWMutex
 	isDirected bool
 	idToNodes  map[ID]Node
-	idToTails  map[ID]map[ID]float64
-	idToHeads  map[ID]map[ID]float64
+	idToTails  map[ID]map[ID]Edge
+	idToHeads  map[ID]map[ID]Edge
 }
 
 func newGraph(isDirected bool) Graph {
 	return &graph{
 		isDirected: isDirected,
 		idToNodes:  make(map[ID]Node),
-		idToTails:  make(map[ID]map[ID]float64),
-		idToHeads:  make(map[ID]map[ID]float64),
+		idToTails:  make(map[ID]map[ID]Edge),
+		idToHeads:  make(map[ID]map[ID]Edge),
 	}
 }
 
@@ -147,28 +148,38 @@ func (g *graph) RemoveNode(id ID) error {
 	return nil
 }
 
+func (g *graph) newEdge(idTail, idHead ID, weight float64) Edge {
+	return newEdge(g.IsDirected(), g.idToNodes[idTail], g.idToNodes[idHead], weight)
+}
+
+func (g *graph) GetEdges() (map[ID]map[ID]Edge, error) {
+	return g.idToHeads, nil
+}
+
 func (g *graph) addEdge(idTail, idHead ID, weight float64) {
+	e := g.newEdge(idTail, idHead, weight)
+
 	if _, ok := g.idToTails[idHead]; ok {
 		if _, ok := g.idToTails[idHead][idTail]; ok {
-			g.idToTails[idHead][idTail] += weight
+			g.idToTails[idHead][idTail].AddWeight(e.Weight())
 		} else {
-			g.idToTails[idHead][idTail] = weight
+			g.idToTails[idHead][idTail] = e
 		}
 	} else {
-		g.idToTails[idHead] = map[ID]float64{
-			idTail: weight,
+		g.idToTails[idHead] = map[ID]Edge{
+			idTail: e,
 		}
 	}
 
 	if _, ok := g.idToHeads[idTail]; ok {
 		if _, ok := g.idToHeads[idTail][idHead]; ok {
-			g.idToHeads[idTail][idHead] += weight
+			g.idToHeads[idTail][idHead].AddWeight(e.Weight())
 		} else {
-			g.idToHeads[idTail][idHead] = weight
+			g.idToHeads[idTail][idHead] = e
 		}
 	} else {
-		g.idToHeads[idTail] = map[ID]float64{
-			idHead: weight,
+		g.idToHeads[idTail] = map[ID]Edge{
+			idHead: e,
 		}
 	}
 
@@ -233,7 +244,7 @@ func (g *graph) GetWeight(idTail, idHead ID) (float64, error) {
 
 	if _, ok := g.idToHeads[idTail]; ok {
 		if _, ok := g.idToHeads[idTail][idHead]; ok {
-			return g.idToHeads[idTail][idHead], nil
+			return g.idToHeads[idTail][idHead].Weight(), nil
 		}
 	}
 
