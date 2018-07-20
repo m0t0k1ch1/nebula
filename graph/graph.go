@@ -153,6 +153,9 @@ func (g *graph) newEdge(idTail, idHead ID, weight float64) Edge {
 }
 
 func (g *graph) GetEdges() (map[ID]map[ID]Edge, error) {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
 	return g.idToHeads, nil
 }
 
