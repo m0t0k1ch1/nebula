@@ -5,7 +5,7 @@ type Edge interface {
 	Tail() Node
 	Head() Node
 	Weight() float64
-	AddWeight(weight float64) error
+	SetWeight(weight float64) error
 }
 
 type edge struct {
@@ -48,7 +48,7 @@ func (e *edge) Weight() float64 {
 	return e.weight
 }
 
-func (e *edge) AddWeight(weight float64) error {
-	e.weight += weight
+func (e *edge) SetWeight(weight float64) error {
+	e.weight = weight
 	return nil
 }
