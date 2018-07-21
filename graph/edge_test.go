@@ -72,13 +72,13 @@ func TestNewUndirecredEdge(t *testing.T) {
 	}
 }
 
-func TestAddWeight(t *testing.T) {
+func TestSetWeight(t *testing.T) {
 	e := &edge{
 		weight: 1.0,
 	}
 
-	e.AddWeight(2.0)
-	if e.Weight() != 3.0 {
-		t.Errorf("expected: %f, actual: %f", 3.0, e.Weight())
+	e.SetWeight(2.0)
+	if e.Weight() != 2.0 {
+		t.Errorf("expected: %f, actual: %f", 2.0, e.Weight())
 	}
 }
