@@ -3,14 +3,17 @@ package graph
 import "testing"
 
 func testInitialized(t *testing.T, g *graph) {
-	if len(g.idToNodes) > 0 {
-		t.Errorf("expected: %d, actual: %d", 0, len(g.idToNodes))
+	if len(g.nodes) > 0 {
+		t.Errorf("expected: %d, actual: %d", 0, len(g.nodes))
 	}
-	if len(g.idToTails) > 0 {
-		t.Errorf("expected: %d, actual: %d", 0, len(g.idToTails))
+	if len(g.heads) > 0 {
+		t.Errorf("expected: %d, actual: %d", 0, len(g.heads))
 	}
-	if len(g.idToHeads) > 0 {
-		t.Errorf("expected: %d, actual: %d", 0, len(g.idToHeads))
+	if len(g.tails) > 0 {
+		t.Errorf("expected: %d, actual: %d", 0, len(g.tails))
+	}
+	if len(g.edges) > 0 {
+		t.Errorf("expected: %d, actual: %d", 0, len(g.edges))
 	}
 }
 
@@ -18,26 +21,29 @@ func testGraphEquality(t *testing.T, expected, actual *graph) {
 	if actual.isDirected != expected.isDirected {
 		t.Errorf("expected: %t, actual: %t", expected.isDirected, actual.isDirected)
 	}
-	testIDToNodesEquality(t, expected.idToNodes, actual.idToNodes)
-	testIDToEndsEquality(t, expected.idToTails, actual.idToTails)
-	testIDToEndsEquality(t, expected.idToHeads, actual.idToHeads)
+	testNodesEquality(t, expected.nodes, actual.nodes)
+	testEndsEquality(t, expected.heads, actual.heads)
+	testEndsEquality(t, expected.tails, actual.tails)
+	testEdgesEquality(t, expected.edges, actual.edges)
 }
 
-func testIDToNodesEquality(t *testing.T, expected, actual map[ID]Node) {
+func testNodesEquality(t *testing.T, expected, actual map[ID]Node) {
 	if len(actual) != len(expected) {
 		t.Errorf("expected: %d, actual: %d", len(expected), len(actual))
 	}
 
-	for id, n := range expected {
+	for id, nExpected := range expected {
 		if _, ok := actual[id]; !ok {
 			t.Errorf("expected: %t, actual: %t", true, ok)
 			continue
 		}
-		testNodeEquality(t, n, actual[id])
+
+		nActual := actual[id]
+		testNodeEquality(t, nExpected, nActual)
 	}
 }
 
-func testIDToEndsEquality(t *testing.T, expected, actual map[ID]map[ID]Edge) {
+func testEndsEquality(t *testing.T, expected, actual map[ID]map[ID]Node) {
 	if len(actual) != len(expected) {
 		t.Errorf("expected: %d, actual: %d", len(expected), len(actual))
 	}
@@ -49,6 +55,37 @@ func testIDToEndsEquality(t *testing.T, expected, actual map[ID]map[ID]Edge) {
 		}
 
 		endsActual := actual[id1]
+
+		if len(endsActual) != len(endsExpected) {
+			t.Errorf("expected: %d, actual: %d", len(endsExpected), len(endsActual))
+			continue
+		}
+
+		for id2, nExpected := range endsExpected {
+			if _, ok := endsActual[id2]; !ok {
+				t.Errorf("expected: %t, actual: %t", true, ok)
+				continue
+			}
+
+			nActual := endsActual[id2]
+			testNodeEquality(t, nExpected, nActual)
+		}
+	}
+}
+
+func testEdgesEquality(t *testing.T, expected, actual map[ID]map[ID]Edge) {
+	if len(actual) != len(expected) {
+		t.Errorf("expected: %d, actual: %d", len(expected), len(actual))
+	}
+
+	for id1, endsExpected := range expected {
+		if _, ok := actual[id1]; !ok {
+			t.Errorf("expected: %t, actual: %t", true, ok)
+			continue
+		}
+
+		endsActual := actual[id1]
+
 		if len(endsActual) != len(endsExpected) {
 			t.Errorf("expected: %d, actual: %d", len(endsExpected), len(endsActual))
 			continue
@@ -122,13 +159,13 @@ func TestGraph_GetNode(t *testing.T) {
 	}{
 		{
 			"success",
-			&graph{idToNodes: map[ID]Node{n1.id: n1}},
+			&graph{nodes: map[ID]Node{n1.id: n1}},
 			input{n1.id},
 			output{n1, nil},
 		},
 		{
 			"failure: non-existent node",
-			&graph{idToNodes: map[ID]Node{n1.id: n1}},
+			&graph{nodes: map[ID]Node{n1.id: n1}},
 			input{n2.id},
 			output{nil, ErrNodeNotExist},
 		},
@@ -163,14 +200,14 @@ func TestGraph_GetNodes(t *testing.T) {
 	n2 := newTestNode("2")
 	expected := map[ID]Node{n1.id: n1, n2.id: n2}
 	g := &graph{
-		idToNodes: expected,
+		nodes: expected,
 	}
 
 	actual, err := g.GetNodes()
 	if err != nil {
 		t.Fatal(err)
 	}
-	testIDToNodesEquality(t, expected, actual)
+	testNodesEquality(t, expected, actual)
 }
 
 func TestGraph_GetTails(t *testing.T) {
@@ -178,15 +215,13 @@ func TestGraph_GetTails(t *testing.T) {
 		id StringID
 	}
 	type output struct {
-		idToNodes map[ID]Node
-		err       error
+		nodes map[ID]Node
+		err   error
 	}
 
 	n1 := newTestNode("1")
 	n2 := newTestNode("2")
 	n3 := newTestNode("3")
-	e21 := newTestEdgeGenerator("2", "1")
-	e31 := newTestEdgeGenerator("3", "1")
 
 	testCases := []struct {
 		name  string
@@ -197,8 +232,8 @@ func TestGraph_GetTails(t *testing.T) {
 		{
 			"success: empty",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1},
-				idToTails: map[ID]map[ID]Edge{},
+				nodes: map[ID]Node{n1.id: n1},
+				tails: map[ID]map[ID]Node{},
 			},
 			input{n1.id},
 			output{map[ID]Node{}, nil},
@@ -206,9 +241,9 @@ func TestGraph_GetTails(t *testing.T) {
 		{
 			"success",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(true, 1), n3.id: e31(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
 			},
 			input{n1.id},
@@ -217,9 +252,9 @@ func TestGraph_GetTails(t *testing.T) {
 		{
 			"failure: non-existent node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
 			},
 			input{n3.id},
@@ -231,11 +266,11 @@ func TestGraph_GetTails(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g, in, out := tc.graph, tc.in, tc.out
 
-			idToNodes, err := g.GetTails(in.id)
+			nodes, err := g.GetTails(in.id)
 			if err != out.err {
 				t.Errorf("expected: %v, actual: %v", out.err, err)
 			}
-			testIDToNodesEquality(t, out.idToNodes, idToNodes)
+			testNodesEquality(t, out.nodes, nodes)
 		})
 	}
 }
@@ -245,15 +280,13 @@ func TestGraph_GetHeads(t *testing.T) {
 		id StringID
 	}
 	type output struct {
-		idToNodes map[ID]Node
-		err       error
+		nodes map[ID]Node
+		err   error
 	}
 
 	n1 := newTestNode("1")
 	n2 := newTestNode("2")
 	n3 := newTestNode("3")
-	e12 := newTestEdgeGenerator("1", "2")
-	e13 := newTestEdgeGenerator("1", "3")
 
 	testCases := []struct {
 		name  string
@@ -264,8 +297,8 @@ func TestGraph_GetHeads(t *testing.T) {
 		{
 			"success: empty",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1},
-				idToHeads: map[ID]map[ID]Edge{},
+				nodes: map[ID]Node{n1.id: n1},
+				heads: map[ID]map[ID]Node{},
 			},
 			input{n1.id},
 			output{map[ID]Node{}, nil},
@@ -273,9 +306,9 @@ func TestGraph_GetHeads(t *testing.T) {
 		{
 			"success",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
 			},
 			input{n1.id},
@@ -284,9 +317,9 @@ func TestGraph_GetHeads(t *testing.T) {
 		{
 			"failure: non-existent node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
 			},
 			input{n3.id},
@@ -298,11 +331,11 @@ func TestGraph_GetHeads(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g, in, out := tc.graph, tc.in, tc.out
 
-			idToNodes, err := g.GetHeads(in.id)
+			nodes, err := g.GetHeads(in.id)
 			if err != out.err {
 				t.Errorf("expected: %v, actual: %v", out.err, err)
 			}
-			testIDToNodesEquality(t, out.idToNodes, idToNodes)
+			testNodesEquality(t, out.nodes, nodes)
 		})
 	}
 }
@@ -326,15 +359,15 @@ func TestGraph_AddNode(t *testing.T) {
 	}{
 		{
 			"success",
-			&graph{idToNodes: map[ID]Node{}},
-			&graph{idToNodes: map[ID]Node{n1.id: n1}},
+			&graph{nodes: map[ID]Node{}},
+			&graph{nodes: map[ID]Node{n1.id: n1}},
 			input{n1},
 			output{nil},
 		},
 		{
 			"success: existent node",
-			&graph{idToNodes: map[ID]Node{n1.id: n1}},
-			&graph{idToNodes: map[ID]Node{n1.id: n1}},
+			&graph{nodes: map[ID]Node{n1.id: n1}},
+			&graph{nodes: map[ID]Node{n1.id: n1}},
 			input{n1},
 			output{nil},
 		},
@@ -380,25 +413,34 @@ func TestGraph_RemoveNode(t *testing.T) {
 		{
 			"success",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(true, 1), n3.id: e31(true, 1)},
-					n2.id: {n1.id: e12(true, 1), n3.id: e32(true, 1)},
-					n3.id: {n1.id: e13(true, 1), n2.id: e23(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1, n3.id: n3},
+					n3.id: {n1.id: n1, n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1, n3.id: n3},
+					n3.id: {n1.id: n1, n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 					n2.id: {n1.id: e21(true, 1), n3.id: e23(true, 1)},
 					n3.id: {n1.id: e31(true, 1), n2.id: e32(true, 1)},
 				},
 			},
 			&graph{
-				idToNodes: map[ID]Node{n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n3.id: e32(true, 1)},
-					n3.id: {n2.id: e23(true, 1)},
+				nodes: map[ID]Node{n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n2.id: {n3.id: n3},
+					n3.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n3.id: n3},
+					n3.id: {n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
 					n2.id: {n3.id: e23(true, 1)},
 					n3.id: {n2.id: e32(true, 1)},
 				},
@@ -409,20 +451,26 @@ func TestGraph_RemoveNode(t *testing.T) {
 		{
 			"success: non-existent node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
@@ -468,28 +516,34 @@ func TestGraph_GetEdge(t *testing.T) {
 		{
 			"success",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.0)},
-					n3.id: {n1.id: e13(true, 1.0)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.0), n3.id: e13(true, 1.0)},
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 				},
 			},
 			input{n1.id, n2.id},
-			output{e12(true, 1.0), nil},
+			output{e12(true, 1), nil},
 		},
 		{
 			"failure: non-existent tail node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 				},
 			},
 			input{n3.id, n2.id},
@@ -498,13 +552,16 @@ func TestGraph_GetEdge(t *testing.T) {
 		{
 			"failure: non-existent head node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 				},
 			},
 			input{n1.id, n3.id},
@@ -513,13 +570,16 @@ func TestGraph_GetEdge(t *testing.T) {
 		{
 			"failure: non-existent edge",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1.2)},
-					n3.id: {n1.id: e13(true, 1.3)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e12(true, 1.2), n3.id: e13(true, 1.3)},
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 				},
 			},
 			input{n2.id, n3.id},
@@ -560,14 +620,14 @@ func TestGraph_GetEdges(t *testing.T) {
 		n2.id: {n3.id: newTestEdge(true, "2", "3", 2.3)},
 	}
 	g := &graph{
-		idToHeads: expected,
+		edges: expected,
 	}
 
 	actual, err := g.GetEdges()
 	if err != nil {
 		t.Fatal(err)
 	}
-	testIDToEndsEquality(t, expected, actual)
+	testEdgesEquality(t, expected, actual)
 }
 
 func TestGraph_AddEdge(t *testing.T) {
@@ -601,17 +661,21 @@ func TestGraph_AddEdge(t *testing.T) {
 			"success: directed, first edge",
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails:  map[ID]map[ID]Edge{},
-				idToHeads:  map[ID]map[ID]Edge{},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads:      map[ID]map[ID]Node{},
+				tails:      map[ID]map[ID]Node{},
+				edges:      map[ID]map[ID]Edge{},
 			},
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
@@ -622,24 +686,32 @@ func TestGraph_AddEdge(t *testing.T) {
 			"success: directed, second edge",
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
-					n3.id: {n2.id: e23(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 					n2.id: {n3.id: e23(true, 1)},
 				},
 			},
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
-					n3.id: {n1.id: e13(true, 1), n2.id: e23(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1, n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 					n2.id: {n3.id: e23(true, 1)},
 				},
@@ -648,26 +720,70 @@ func TestGraph_AddEdge(t *testing.T) {
 			output{nil},
 		},
 		{
+			"success: directed, reversed edge",
+			&graph{
+				isDirected: true,
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n3.id: n3},
+				},
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1)},
+					n2.id: {n3.id: e23(true, 1)},
+				},
+			},
+			&graph{
+				isDirected: true,
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1, n3.id: n3},
+				},
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
+					n3.id: {n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1)},
+					n2.id: {n1.id: e21(true, 1), n3.id: e23(true, 1)},
+				},
+			},
+			input{n2.id, n1.id, 1.0},
+			output{nil},
+		},
+		{
 			"success: directed, existent edge",
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
-					n3.id: {n1.id: e13(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 				},
 			},
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 2)},
-					n3.id: {n1.id: e13(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 2), n3.id: e13(true, 1)},
 				},
 			},
@@ -678,18 +794,23 @@ func TestGraph_AddEdge(t *testing.T) {
 			"success: undirected, first edge",
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails:  map[ID]map[ID]Edge{},
-				idToHeads:  map[ID]map[ID]Edge{},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads:      map[ID]map[ID]Node{},
+				tails:      map[ID]map[ID]Node{},
+				edges:      map[ID]map[ID]Edge{},
 			},
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1)},
-					n2.id: {n1.id: e12(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1)},
 					n2.id: {n1.id: e21(false, 1)},
 				},
@@ -701,13 +822,18 @@ func TestGraph_AddEdge(t *testing.T) {
 			"success: undirected, second edge",
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1)},
-					n2.id: {n1.id: e12(false, 1), n3.id: e32(false, 1)},
-					n3.id: {n2.id: e23(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1, n3.id: n3},
+					n3.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1, n3.id: n3},
+					n3.id: {n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1)},
 					n2.id: {n1.id: e21(false, 1), n3.id: e23(false, 1)},
 					n3.id: {n2.id: e32(false, 1)},
@@ -715,13 +841,18 @@ func TestGraph_AddEdge(t *testing.T) {
 			},
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1), n3.id: e31(false, 1)},
-					n2.id: {n1.id: e12(false, 1), n3.id: e32(false, 1)},
-					n3.id: {n1.id: e13(false, 1), n2.id: e23(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1, n3.id: n3},
+					n3.id: {n1.id: n1, n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1, n3.id: n3},
+					n3.id: {n1.id: n1, n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1), n3.id: e13(false, 1)},
 					n2.id: {n1.id: e21(false, 1), n3.id: e23(false, 1)},
 					n3.id: {n1.id: e31(false, 1), n2.id: e32(false, 1)},
@@ -734,13 +865,18 @@ func TestGraph_AddEdge(t *testing.T) {
 			"success: undirected, existent edge",
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1), n3.id: e31(false, 1)},
-					n2.id: {n1.id: e12(false, 1)},
-					n3.id: {n1.id: e13(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1), n3.id: e13(false, 1)},
 					n2.id: {n1.id: e21(false, 1)},
 					n3.id: {n1.id: e31(false, 1)},
@@ -748,13 +884,18 @@ func TestGraph_AddEdge(t *testing.T) {
 			},
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 2), n3.id: e31(false, 1)},
-					n2.id: {n1.id: e12(false, 2)},
-					n3.id: {n1.id: e13(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 2), n3.id: e13(false, 1)},
 					n2.id: {n1.id: e21(false, 2)},
 					n3.id: {n1.id: e31(false, 1)},
@@ -766,14 +907,14 @@ func TestGraph_AddEdge(t *testing.T) {
 		{
 			"failure: non-existent tail node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{},
-				idToHeads: map[ID]map[ID]Edge{},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{},
+				tails: map[ID]map[ID]Node{},
 			},
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{},
-				idToHeads: map[ID]map[ID]Edge{},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{},
+				tails: map[ID]map[ID]Node{},
 			},
 			input{n3.id, n2.id, 1.0},
 			output{ErrNodeNotExist},
@@ -781,14 +922,14 @@ func TestGraph_AddEdge(t *testing.T) {
 		{
 			"failure: non-existent head node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{},
-				idToHeads: map[ID]map[ID]Edge{},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{},
+				tails: map[ID]map[ID]Node{},
 			},
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{},
-				idToHeads: map[ID]map[ID]Edge{},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{},
+				tails: map[ID]map[ID]Node{},
 			},
 			input{n1.id, n3.id, 1.0},
 			output{ErrNodeNotExist},
@@ -820,8 +961,8 @@ func TestGraph_RemoveEdge(t *testing.T) {
 	n2 := newTestNode("2")
 	n3 := newTestNode("3")
 	e12 := newTestEdgeGenerator("1", "2")
-	e13 := newTestEdgeGenerator("1", "3")
 	e21 := newTestEdgeGenerator("2", "1")
+	e13 := newTestEdgeGenerator("1", "3")
 	e31 := newTestEdgeGenerator("3", "1")
 
 	testCases := []struct {
@@ -835,23 +976,63 @@ func TestGraph_RemoveEdge(t *testing.T) {
 			"success: directed",
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
-					n3.id: {n1.id: e13(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
 				},
 			},
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n3.id: {n1.id: e13(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n3.id: n3},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n3.id: e13(true, 1)},
+				},
+			},
+			input{n1.id, n2.id},
+			output{nil},
+		},
+		{
+			"success: directed, bidirectional edge",
+			&graph{
+				isDirected: true,
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
+				},
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
+					n1.id: {n2.id: e12(true, 1)},
+					n2.id: {n1.id: e21(true, 1)},
+				},
+			},
+			&graph{
+				isDirected: true,
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+				},
+				edges: map[ID]map[ID]Edge{
+					n2.id: {n1.id: e21(true, 1)},
 				},
 			},
 			input{n1.id, n2.id},
@@ -861,21 +1042,27 @@ func TestGraph_RemoveEdge(t *testing.T) {
 			"success: directed, non-existent edge",
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
 			&graph{
 				isDirected: true,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
@@ -886,13 +1073,18 @@ func TestGraph_RemoveEdge(t *testing.T) {
 			"success: undirected",
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1), n3.id: e31(false, 1)},
-					n2.id: {n1.id: e12(false, 1)},
-					n3.id: {n1.id: e13(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2, n3.id: n3},
+					n2.id: {n1.id: n1},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1), n3.id: e13(false, 1)},
 					n2.id: {n1.id: e21(false, 1)},
 					n3.id: {n1.id: e31(false, 1)},
@@ -900,12 +1092,16 @@ func TestGraph_RemoveEdge(t *testing.T) {
 			},
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n3.id: e31(false, 1)},
-					n3.id: {n1.id: e13(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n3.id: n3},
+					n3.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n3.id: n3},
+					n3.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n3.id: e13(false, 1)},
 					n3.id: {n1.id: e31(false, 1)},
 				},
@@ -917,24 +1113,32 @@ func TestGraph_RemoveEdge(t *testing.T) {
 			"success: undirected, non-existent edge",
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1)},
-					n2.id: {n1.id: e12(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1)},
 					n2.id: {n1.id: e21(false, 1)},
 				},
 			},
 			&graph{
 				isDirected: false,
-				idToNodes:  map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
-				idToTails: map[ID]map[ID]Edge{
-					n1.id: {n2.id: e21(false, 1)},
-					n2.id: {n1.id: e12(false, 1)},
+				nodes:      map[ID]Node{n1.id: n1, n2.id: n2, n3.id: n3},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(false, 1)},
 					n2.id: {n1.id: e21(false, 1)},
 				},
@@ -945,20 +1149,26 @@ func TestGraph_RemoveEdge(t *testing.T) {
 		{
 			"failure: non-existent tail node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
@@ -968,20 +1178,26 @@ func TestGraph_RemoveEdge(t *testing.T) {
 		{
 			"failure: non-existent head node",
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
 			&graph{
-				idToNodes: map[ID]Node{n1.id: n1, n2.id: n2},
-				idToTails: map[ID]map[ID]Edge{
-					n2.id: {n1.id: e12(true, 1)},
+				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
+				heads: map[ID]map[ID]Node{
+					n1.id: {n2.id: n2},
 				},
-				idToHeads: map[ID]map[ID]Edge{
+				tails: map[ID]map[ID]Node{
+					n2.id: {n1.id: n1},
+				},
+				edges: map[ID]map[ID]Edge{
 					n1.id: {n2.id: e12(true, 1)},
 				},
 			},
