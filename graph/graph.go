@@ -230,12 +230,10 @@ func (g *graph) AddEdge(idTail, idHead ID, weight float64) error {
 	}
 
 	g.addEdge(idTail, idHead, weight)
+	g.addRelation(idTail, idHead)
+
 	if !g.isDirected {
 		g.addEdge(idHead, idTail, weight)
-	}
-
-	g.addRelation(idTail, idHead)
-	if !g.isDirected {
 		g.addRelation(idHead, idTail)
 	}
 
@@ -282,12 +280,10 @@ func (g *graph) RemoveEdge(idTail, idHead ID) error {
 	}
 
 	g.removeEdge(idTail, idHead)
+	g.removeRelation(idTail, idHead)
+
 	if !g.isDirected {
 		g.removeEdge(idHead, idTail)
-	}
-
-	g.removeRelation(idTail, idHead)
-	if !g.isDirected {
 		g.removeRelation(idHead, idTail)
 	}
 
