@@ -5,11 +5,34 @@ import (
 	"github.com/m0t0k1ch1/nebula/graph"
 )
 
+var (
+	defaultGraphAttrs = map[string]string{
+		string(gographviz.Layout): "neato",
+	}
+	defaultNodeAttrs = map[string]string{
+		string(gographviz.Style):       "\"filled,solid\"",
+		string(gographviz.Shape):       "circle",
+		string(gographviz.ColorScheme): "svg",
+		string(gographviz.Color):       "darkslategray",
+		string(gographviz.FillColor):   "darkslategray",
+		string(gographviz.FontColor):   "white",
+	}
+	defaultEdgeAttrs = map[string]string{
+		string(gographviz.Style): "solid",
+		string(gographviz.Color): "black",
+	}
+)
+
 func NewDOTGraph(g graph.Graph) (*gographviz.Graph, error) {
 	gv := gographviz.NewGraph()
 
 	if err := gv.SetDir(g.IsDirected()); err != nil {
 		return nil, err
+	}
+	for k, v := range defaultGraphAttrs {
+		if err := gv.AddAttr(gv.Name, k, v); err != nil {
+			return nil, err
+		}
 	}
 
 	// add nodes
@@ -18,7 +41,7 @@ func NewDOTGraph(g graph.Graph) (*gographviz.Graph, error) {
 		return nil, err
 	}
 	for _, n := range nodes {
-		if err := gv.AddNode(gv.Name, n.ID().String(), nil); err != nil {
+		if err := gv.AddNode(gv.Name, n.ID().String(), defaultNodeAttrs); err != nil {
 			return nil, err
 		}
 	}
@@ -34,7 +57,7 @@ func NewDOTGraph(g graph.Graph) (*gographviz.Graph, error) {
 				e.Tail().ID().String(),
 				e.Head().ID().String(),
 				e.IsDirected(),
-				nil,
+				defaultEdgeAttrs,
 			); err != nil {
 				return nil, err
 			}
