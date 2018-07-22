@@ -8,6 +8,7 @@ import (
 var (
 	ErrNodeNotExist = errors.New("graph: the node does not exist in the graph")
 	ErrEdgeNotExist = errors.New("graph: the edge does not exist in the graph")
+	ErrEdgeLooped   = errors.New("graph: the edge is looped")
 )
 
 type Graph interface {
@@ -225,6 +226,9 @@ func (g *graph) AddEdge(idTail, idHead ID, weight float64) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	if idTail == idHead {
+		return ErrEdgeLooped
+	}
 	if !g.isExistNode(idTail) || !g.isExistNode(idHead) {
 		return ErrNodeNotExist
 	}

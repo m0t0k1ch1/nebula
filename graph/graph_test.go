@@ -905,6 +905,21 @@ func TestGraph_AddEdge(t *testing.T) {
 			output{nil},
 		},
 		{
+			"failure: looped edge",
+			&graph{
+				nodes: map[ID]Node{n1.id: n1},
+				heads: map[ID]map[ID]Node{},
+				tails: map[ID]map[ID]Node{},
+			},
+			&graph{
+				nodes: map[ID]Node{n1.id: n1},
+				heads: map[ID]map[ID]Node{},
+				tails: map[ID]map[ID]Node{},
+			},
+			input{n1.id, n1.id, 1.0},
+			output{ErrEdgeLooped},
+		},
+		{
 			"failure: non-existent tail node",
 			&graph{
 				nodes: map[ID]Node{n1.id: n1, n2.id: n2},
