@@ -7,7 +7,7 @@ import (
 
 var (
 	defaultGraphAttrs = map[string]string{
-		string(gographviz.Layout): "neato",
+		string(gographviz.Layout): "fdp",
 	}
 	defaultNodeAttrs = map[string]string{
 		string(gographviz.Style):       "\"filled,solid\"",
