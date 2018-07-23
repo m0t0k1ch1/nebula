@@ -31,7 +31,7 @@ func newRandomID(excludes map[graph.ID]bool) (id graph.ID) {
 		}
 		ok = true
 	}
-	return id
+	return
 }
 
 func pickRandomID(ends map[graph.ID]graph.Node) (id graph.ID) {
