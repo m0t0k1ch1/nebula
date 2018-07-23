@@ -22,7 +22,7 @@ func newID(id int) graph.ID {
 	return graph.StringID(strconv.Itoa(id))
 }
 
-func randID(excludes map[graph.ID]bool) (id graph.ID) {
+func pickRandomID(excludes map[graph.ID]bool) (id graph.ID) {
 	ok := false
 	for !ok {
 		id = newID(rand.Intn(n))
@@ -31,7 +31,18 @@ func randID(excludes map[graph.ID]bool) (id graph.ID) {
 		}
 		ok = true
 	}
-	return id
+	return
+}
+
+func pickRandomIDFromEnds(ends map[graph.ID]graph.Node) (id graph.ID) {
+	i, target := 0, rand.Intn(len(ends))
+	for id, _ = range ends {
+		if i == target {
+			break
+		}
+		i++
+	}
+	return
 }
 
 func init() {
@@ -77,8 +88,13 @@ func createGraph() (graph.Graph, error) {
 
 	// pick target edges
 	for cnt < targetsNum {
-		idTail := randID(nil)
-		idHead := randID(map[graph.ID]bool{idTail: true})
+		idTail := pickRandomID(nil)
+
+		heads, err := g.GetHeads(idTail)
+		if err != nil {
+			return nil, err
+		}
+		idHead := pickRandomIDFromEnds(heads)
 
 		if _, ok := targets[idTail]; ok {
 			if _, ok := targets[idTail][idHead]; ok {
@@ -101,8 +117,8 @@ func createGraph() (graph.Graph, error) {
 	}
 
 	// switch edges
-	for idTail, heads := range targets {
-		for idHeadOld, _ := range heads {
+	for idTail, targetHeads := range targets {
+		for idHeadOld, _ := range targetHeads {
 			heads, err := g.GetHeads(idTail)
 			if err != nil {
 				return nil, err
@@ -116,7 +132,7 @@ func createGraph() (graph.Graph, error) {
 				return nil, err
 			}
 
-			idHeadNew := randID(excludes)
+			idHeadNew := pickRandomID(excludes)
 			if err := g.AddEdge(idTail, idHeadNew, 1.0); err != nil {
 				return nil, err
 			}
