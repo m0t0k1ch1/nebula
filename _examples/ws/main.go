@@ -72,7 +72,7 @@ func createGraph() (graph.Graph, error) {
 	}
 
 	targetsNum := int(math.Floor(float64(n) * float64(kAvg/2) * p))
-	targets := map[graph.ID]map[graph.ID]map[graph.ID]bool{}
+	targets := map[graph.ID]map[graph.ID]bool{}
 	cnt := 0
 
 	// pick target edges
@@ -91,22 +91,10 @@ func createGraph() (graph.Graph, error) {
 			}
 		}
 
-		heads, err := g.GetHeads(idTail)
-		if err != nil {
-			return nil, err
-		}
-
-		excludes := map[graph.ID]bool{idTail: true}
-		for _, node := range heads {
-			excludes[node.ID()] = true
-		}
-
 		if _, ok := targets[idTail]; ok {
-			targets[idTail][idHead] = excludes
+			targets[idTail][idHead] = true
 		} else {
-			targets[idTail] = map[graph.ID]map[graph.ID]bool{
-				idHead: excludes,
-			}
+			targets[idTail] = map[graph.ID]bool{idHead: true}
 		}
 
 		cnt++
@@ -114,13 +102,22 @@ func createGraph() (graph.Graph, error) {
 
 	// switch edges
 	for idTail, heads := range targets {
-		for idHead, excludes := range heads {
-			if err := g.RemoveEdge(idTail, idHead); err != nil {
+		for idHeadOld, _ := range heads {
+			heads, err := g.GetHeads(idTail)
+			if err != nil {
+				return nil, err
+			}
+			excludes := map[graph.ID]bool{idTail: true}
+			for _, node := range heads {
+				excludes[node.ID()] = true
+			}
+
+			if err := g.RemoveEdge(idTail, idHeadOld); err != nil {
 				return nil, err
 			}
 
-			idHead = randID(excludes)
-			if err := g.AddEdge(idTail, idHead, 1.0); err != nil {
+			idHeadNew := randID(excludes)
+			if err := g.AddEdge(idTail, idHeadNew, 1.0); err != nil {
 				return nil, err
 			}
 		}
