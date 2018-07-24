@@ -11,57 +11,43 @@ var (
 	ErrEdgeLooped   = errors.New("graph: the edge is looped")
 )
 
-type Graph interface {
-	IsDirected() bool
-	GetNode(ID) (Node, error)
-	GetNodes() (map[ID]Node, error)
-	GetHeads(ID) (map[ID]Node, error)
-	GetTails(ID) (map[ID]Node, error)
-	AddNode(Node) error
-	RemoveNode(ID) error
-	GetEdge(ID, ID) (Edge, error)
-	GetEdges() (map[ID]map[ID]Edge, error)
-	AddEdge(ID, ID, float64) error
-	RemoveEdge(ID, ID) error
-}
-
-type graph struct {
+type Graph struct {
 	mu         sync.RWMutex
 	isDirected bool
-	nodes      map[ID]Node
-	heads      map[ID]map[ID]Node
-	tails      map[ID]map[ID]Node
-	edges      map[ID]map[ID]Edge
+	nodes      map[ID]*Node
+	heads      map[ID]map[ID]*Node
+	tails      map[ID]map[ID]*Node
+	edges      map[ID]map[ID]*Edge
 }
 
-func newGraph(isDirected bool) Graph {
-	return &graph{
+func newGraph(isDirected bool) *Graph {
+	return &Graph{
 		isDirected: isDirected,
-		nodes:      map[ID]Node{},
-		heads:      map[ID]map[ID]Node{},
-		tails:      map[ID]map[ID]Node{},
-		edges:      map[ID]map[ID]Edge{},
+		nodes:      map[ID]*Node{},
+		heads:      map[ID]map[ID]*Node{},
+		tails:      map[ID]map[ID]*Node{},
+		edges:      map[ID]map[ID]*Edge{},
 	}
 }
 
-func NewDirected() Graph {
+func NewDirected() *Graph {
 	return newGraph(true)
 }
 
-func NewUndirected() Graph {
+func NewUndirected() *Graph {
 	return newGraph(false)
 }
 
-func (g *graph) IsDirected() bool {
+func (g *Graph) IsDirected() bool {
 	return g.isDirected
 }
 
-func (g *graph) isExistNode(id ID) (exists bool) {
+func (g *Graph) isExistNode(id ID) (exists bool) {
 	_, exists = g.nodes[id]
 	return
 }
 
-func (g *graph) GetNode(id ID) (Node, error) {
+func (g *Graph) GetNode(id ID) (*Node, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
@@ -72,14 +58,14 @@ func (g *graph) GetNode(id ID) (Node, error) {
 	return g.nodes[id], nil
 }
 
-func (g *graph) GetNodes() (map[ID]Node, error) {
+func (g *Graph) GetNodes() (map[ID]*Node, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
 	return g.nodes, nil
 }
 
-func (g *graph) GetHeads(idTail ID) (map[ID]Node, error) {
+func (g *Graph) GetHeads(idTail ID) (map[ID]*Node, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
@@ -88,13 +74,13 @@ func (g *graph) GetHeads(idTail ID) (map[ID]Node, error) {
 	}
 
 	if _, ok := g.heads[idTail]; !ok {
-		return map[ID]Node{}, nil
+		return map[ID]*Node{}, nil
 	}
 
 	return g.heads[idTail], nil
 }
 
-func (g *graph) GetTails(idHead ID) (map[ID]Node, error) {
+func (g *Graph) GetTails(idHead ID) (map[ID]*Node, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
@@ -103,13 +89,13 @@ func (g *graph) GetTails(idHead ID) (map[ID]Node, error) {
 	}
 
 	if _, ok := g.tails[idHead]; !ok {
-		return map[ID]Node{}, nil
+		return map[ID]*Node{}, nil
 	}
 
 	return g.tails[idHead], nil
 }
 
-func (g *graph) AddNode(n Node) error {
+func (g *Graph) AddNode(n *Node) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -122,7 +108,7 @@ func (g *graph) AddNode(n Node) error {
 	return nil
 }
 
-func (g *graph) RemoveNode(id ID) error {
+func (g *Graph) RemoveNode(id ID) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -150,7 +136,7 @@ func (g *graph) RemoveNode(id ID) error {
 	return nil
 }
 
-func (g *graph) isExistEdge(idTail, idHead ID) bool {
+func (g *Graph) isExistEdge(idTail, idHead ID) bool {
 	if _, ok := g.edges[idTail]; ok {
 		if _, ok := g.edges[idTail][idHead]; ok {
 			return true
@@ -159,11 +145,11 @@ func (g *graph) isExistEdge(idTail, idHead ID) bool {
 	return false
 }
 
-func (g *graph) newEdge(idTail, idHead ID, weight float64) Edge {
+func (g *Graph) newEdge(idTail, idHead ID, weight float64) *Edge {
 	return newEdge(g.isDirected, g.nodes[idTail], g.nodes[idHead], weight)
 }
 
-func (g *graph) GetEdge(idTail, idHead ID) (Edge, error) {
+func (g *Graph) GetEdge(idTail, idHead ID) (*Edge, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
@@ -178,14 +164,14 @@ func (g *graph) GetEdge(idTail, idHead ID) (Edge, error) {
 	return g.edges[idTail][idHead], nil
 }
 
-func (g *graph) GetEdges() (map[ID]map[ID]Edge, error) {
+func (g *Graph) GetEdges() (map[ID]map[ID]*Edge, error) {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
 	return g.edges, nil
 }
 
-func (g *graph) addEdge(idTail, idHead ID, weight float64) {
+func (g *Graph) addEdge(idTail, idHead ID, weight float64) {
 	if _, ok := g.edges[idTail]; ok {
 		if _, ok := g.edges[idTail][idHead]; ok {
 			e := g.edges[idTail][idHead]
@@ -194,19 +180,19 @@ func (g *graph) addEdge(idTail, idHead ID, weight float64) {
 			g.edges[idTail][idHead] = g.newEdge(idTail, idHead, weight)
 		}
 	} else {
-		g.edges[idTail] = map[ID]Edge{
+		g.edges[idTail] = map[ID]*Edge{
 			idHead: g.newEdge(idTail, idHead, weight),
 		}
 	}
 }
 
-func (g *graph) addRelation(idTail, idHead ID) {
+func (g *Graph) addRelation(idTail, idHead ID) {
 	if _, ok := g.heads[idTail]; ok {
 		if _, ok := g.heads[idTail][idHead]; !ok {
 			g.heads[idTail][idHead] = g.nodes[idHead]
 		}
 	} else {
-		g.heads[idTail] = map[ID]Node{
+		g.heads[idTail] = map[ID]*Node{
 			idHead: g.nodes[idHead],
 		}
 	}
@@ -216,13 +202,13 @@ func (g *graph) addRelation(idTail, idHead ID) {
 			g.tails[idHead][idTail] = g.nodes[idTail]
 		}
 	} else {
-		g.tails[idHead] = map[ID]Node{
+		g.tails[idHead] = map[ID]*Node{
 			idTail: g.nodes[idTail],
 		}
 	}
 }
 
-func (g *graph) AddEdge(idTail, idHead ID, weight float64) error {
+func (g *Graph) AddEdge(idTail, idHead ID, weight float64) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
@@ -244,7 +230,7 @@ func (g *graph) AddEdge(idTail, idHead ID, weight float64) error {
 	return nil
 }
 
-func (g *graph) removeEdge(idTail, idHead ID) {
+func (g *Graph) removeEdge(idTail, idHead ID) {
 	if _, ok := g.edges[idTail]; ok {
 		if _, ok := g.edges[idTail][idHead]; ok {
 			delete(g.edges[idTail], idHead)
@@ -255,7 +241,7 @@ func (g *graph) removeEdge(idTail, idHead ID) {
 	}
 }
 
-func (g *graph) removeRelation(idTail, idHead ID) {
+func (g *Graph) removeRelation(idTail, idHead ID) {
 	if _, ok := g.tails[idHead]; ok {
 		if _, ok := g.tails[idHead][idTail]; ok {
 			delete(g.tails[idHead], idTail)
@@ -275,7 +261,7 @@ func (g *graph) removeRelation(idTail, idHead ID) {
 	}
 }
 
-func (g *graph) RemoveEdge(idTail, idHead ID) error {
+func (g *Graph) RemoveEdge(idTail, idHead ID) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 

@@ -2,14 +2,14 @@ package graph
 
 import "testing"
 
-func newTestEdgeGenerator(idTail, idHead string) func(bool, float64) *edge {
-	return func(isDirected bool, weight float64) *edge {
+func newTestEdgeGenerator(idTail, idHead string) func(bool, float64) *Edge {
+	return func(isDirected bool, weight float64) *Edge {
 		return newTestEdge(isDirected, idTail, idHead, weight)
 	}
 }
 
-func newTestEdge(isDirected bool, idTail, idHead string, weight float64) *edge {
-	return &edge{
+func newTestEdge(isDirected bool, idTail, idHead string, weight float64) *Edge {
+	return &Edge{
 		isDirected: isDirected,
 		tail:       newTestNode(idTail),
 		head:       newTestNode(idHead),
@@ -17,7 +17,7 @@ func newTestEdge(isDirected bool, idTail, idHead string, weight float64) *edge {
 	}
 }
 
-func testEdgeEquality(t *testing.T, expected, actual Edge) {
+func testEdgeEquality(t *testing.T, expected, actual *Edge) {
 	if actual.IsDirected() != expected.IsDirected() {
 		t.Errorf("expected: %t, actual: %t", expected.IsDirected(), actual.IsDirected())
 	}
@@ -73,7 +73,7 @@ func TestNewUndirecredEdge(t *testing.T) {
 }
 
 func TestSetWeight(t *testing.T) {
-	e := &edge{
+	e := &Edge{
 		weight: 1.0,
 	}
 

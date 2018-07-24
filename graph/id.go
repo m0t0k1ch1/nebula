@@ -1,11 +1,7 @@
 package graph
 
-type ID interface {
-	String() string
-}
+type ID string
 
-type StringID string
-
-func (s StringID) String() string {
-	return string(s)
+func (id ID) String() string {
+	return string(id)
 }
