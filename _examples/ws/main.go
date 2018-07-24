@@ -19,7 +19,7 @@ const (
 )
 
 func newID(id int) graph.ID {
-	return graph.StringID(strconv.Itoa(id))
+	return graph.ID(strconv.Itoa(id))
 }
 
 func pickRandomID(excludes map[graph.ID]bool) (id graph.ID) {
@@ -34,7 +34,7 @@ func pickRandomID(excludes map[graph.ID]bool) (id graph.ID) {
 	return
 }
 
-func pickRandomIDFromEnds(ends map[graph.ID]graph.Node) (id graph.ID) {
+func pickRandomIDFromEnds(ends map[graph.ID]*graph.Node) (id graph.ID) {
 	i, target := 0, rand.Intn(len(ends))
 	for id, _ = range ends {
 		if i == target {
@@ -60,7 +60,7 @@ func main() {
 	}
 }
 
-func createGraph() (graph.Graph, error) {
+func createGraph() (*graph.Graph, error) {
 	g := graph.NewUndirected()
 
 	// add nodes
@@ -142,7 +142,7 @@ func createGraph() (graph.Graph, error) {
 	return g, nil
 }
 
-func writeGraph(g graph.Graph) error {
+func writeGraph(g *graph.Graph) error {
 	dg, err := utils.NewDOTGraph(g)
 	if err != nil {
 		return err

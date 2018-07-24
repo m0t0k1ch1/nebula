@@ -2,20 +2,20 @@ package graph
 
 import "testing"
 
-func newTestNode(id string) *node {
-	return &node{
-		id: StringID(id),
+func newTestNode(id string) *Node {
+	return &Node{
+		id: ID(id),
 	}
 }
 
-func testNodeEquality(t *testing.T, expected, actual Node) {
+func testNodeEquality(t *testing.T, expected, actual *Node) {
 	if actual.ID() != expected.ID() {
 		t.Errorf("expected: %q, actual: %q", expected.ID(), actual.ID())
 	}
 }
 
 func TestNewNode(t *testing.T) {
-	id := StringID("1")
+	id := ID("1")
 
 	n := NewNode(id.String())
 	if n.ID() != id {

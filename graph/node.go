@@ -1,19 +1,15 @@
 package graph
 
-type Node interface {
-	ID() ID
+type Node struct {
+	id ID
 }
 
-type node struct {
-	id StringID
-}
-
-func NewNode(id string) Node {
-	return &node{
-		id: StringID(id),
+func NewNode(id string) *Node {
+	return &Node{
+		id: ID(id),
 	}
 }
 
-func (n *node) ID() ID {
+func (n *Node) ID() ID {
 	return n.id
 }
