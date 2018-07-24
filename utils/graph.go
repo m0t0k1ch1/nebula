@@ -23,7 +23,7 @@ var (
 	}
 )
 
-func NewDOTGraph(g graph.Graph) (*gographviz.Graph, error) {
+func NewDOTGraph(g *graph.Graph) (*gographviz.Graph, error) {
 	gv := gographviz.NewGraph()
 
 	if err := gv.SetDir(g.IsDirected()); err != nil {
