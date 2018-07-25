@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"os"
+	"sort"
 	"strconv"
 	"time"
 
@@ -54,6 +56,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	writeGraphFeatures(g)
 
 	if err := writeGraph(g); err != nil {
 		panic(err)
@@ -140,6 +144,18 @@ func createGraph() (*graph.Graph, error) {
 	}
 
 	return g, nil
+}
+
+func writeGraphFeatures(g *graph.Graph) {
+	kDist := g.GetIndegreeDistribution()
+	sort.Sort(kDist)
+
+	fmt.Println("kAvg:", kDist.CalcAverageDegree())
+	fmt.Println("kDist:")
+	ks := kDist.GetDegrees()
+	for _, k := range ks {
+		fmt.Println("-", k, ":", kDist.GetNum(k))
+	}
 }
 
 func writeGraph(g *graph.Graph) error {

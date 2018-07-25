@@ -1,6 +1,9 @@
 package graph
 
-import "testing"
+import (
+	"sort"
+	"testing"
+)
 
 func testInitialized(t *testing.T, g *Graph) {
 	if len(g.nodes) > 0 {
@@ -1231,4 +1234,52 @@ func TestGraph_RemoveEdge(t *testing.T) {
 			testGraphEquality(t, expected, actual)
 		})
 	}
+}
+
+func TestGraph_GetIndegreeDistribution(t *testing.T) {
+	n1 := newTestNode("1")
+	n2 := newTestNode("2")
+	n3 := newTestNode("3")
+	n4 := newTestNode("4")
+
+	expected := &DegreeDistribution{
+		m:       map[int]int{0: 1, 1: 2, 2: 1},
+		degrees: []int{0, 1, 2},
+	}
+	g := &Graph{
+		tails: map[ID]map[ID]*Node{
+			n1.id: {n2.id: n2, n3.id: n3},
+			n2.id: {n4.id: n4},
+			n3.id: {n4.id: n4},
+			n4.id: {},
+		},
+	}
+
+	actual := g.GetIndegreeDistribution()
+	sort.Sort(actual)
+	testDegreeDistributionEquality(t, expected, actual)
+}
+
+func TestGraph_GetOutdegreeDistribution(t *testing.T) {
+	n1 := newTestNode("1")
+	n2 := newTestNode("2")
+	n3 := newTestNode("3")
+	n4 := newTestNode("4")
+
+	expected := &DegreeDistribution{
+		m:       map[int]int{0: 1, 1: 2, 2: 1},
+		degrees: []int{0, 1, 2},
+	}
+	g := &Graph{
+		heads: map[ID]map[ID]*Node{
+			n1.id: {n2.id: n2, n3.id: n3},
+			n2.id: {n4.id: n4},
+			n3.id: {n4.id: n4},
+			n4.id: {},
+		},
+	}
+
+	actual := g.GetOutdegreeDistribution()
+	sort.Sort(actual)
+	testDegreeDistributionEquality(t, expected, actual)
 }
