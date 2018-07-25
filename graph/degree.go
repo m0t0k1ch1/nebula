@@ -25,6 +25,9 @@ func (dist *DegreeDistribution) Swap(i, j int) {
 }
 
 func (dist *DegreeDistribution) GetNum(k int) int {
+	if _, ok := dist.m[k]; !ok {
+		return 0
+	}
 	return dist.m[k]
 }
 
