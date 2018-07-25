@@ -147,7 +147,7 @@ func createGraph() (*graph.Graph, error) {
 }
 
 func writeGraphFeatures(g *graph.Graph) {
-	kDist := g.CalcIndegrees()
+	kDist := g.GetIndegreeDistribution()
 	sort.Sort(kDist)
 
 	fmt.Println("kAvg:", kDist.CalcAverageDegree())
