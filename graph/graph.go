@@ -279,3 +279,19 @@ func (g *Graph) RemoveEdge(idTail, idHead ID) error {
 
 	return nil
 }
+
+func (g *Graph) CalcIndegrees() *DegreeDistribution {
+	dist := NewDegreeDistribution()
+	for _, tailNodes := range g.tails {
+		dist.Add(len(tailNodes))
+	}
+	return dist
+}
+
+func (g *Graph) CalcOutdegrees() *DegreeDistribution {
+	dist := NewDegreeDistribution()
+	for _, headNodes := range g.heads {
+		dist.Add(len(headNodes))
+	}
+	return dist
+}
