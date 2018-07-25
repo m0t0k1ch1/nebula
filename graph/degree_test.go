@@ -97,11 +97,13 @@ func TestDegreeDistribution_GetNum(t *testing.T) {
 }
 
 func TestDegreeDistribution_GetDegrees(t *testing.T) {
+	expected := []int{0, 1, 2}
 	dist := &DegreeDistribution{
-		degrees: []int{0, 1, 2},
+		degrees: expected,
 	}
 
-	testDegreesEquality(t, dist.degrees, dist.GetDegrees())
+	actual := dist.GetDegrees()
+	testDegreesEquality(t, expected, actual)
 }
 
 func TestDegreeDistribution_Add(t *testing.T) {
@@ -151,12 +153,13 @@ func TestDegreeDistribution_Add(t *testing.T) {
 }
 
 func TestDegreeDistribution_CalcAverageDegree(t *testing.T) {
+	expected := 2.0
 	dist := &DegreeDistribution{
 		m: map[int]int{0: 1, 1: 2, 2: 3, 3: 4},
 	}
 
-	kAvg := dist.CalcAverageDegree()
-	if kAvg != 2.0 {
-		t.Errorf("expected: %f, actual: %f", 2.0, kAvg)
+	actual := dist.CalcAverageDegree()
+	if actual != expected {
+		t.Errorf("expected: %f, actual: %f", expected, actual)
 	}
 }
