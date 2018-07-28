@@ -7,3 +7,4 @@ elements to generate complex networks
 ## Examples
 
 - [WS (Watts-Strogatz) Model](./_examples/ws)
+- [BA (Barabási-Albert) Model](./_examples/ba)
