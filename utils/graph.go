@@ -36,10 +36,7 @@ func NewDOTGraph(g *graph.Graph) (*gographviz.Graph, error) {
 	}
 
 	// add nodes
-	nodes, err := g.GetNodes()
-	if err != nil {
-		return nil, err
-	}
+	nodes := g.GetNodes()
 	for _, n := range nodes {
 		if err := gv.AddNode(gv.Name, n.ID().String(), defaultNodeAttrs); err != nil {
 			return nil, err
@@ -47,10 +44,7 @@ func NewDOTGraph(g *graph.Graph) (*gographviz.Graph, error) {
 	}
 
 	// add edges
-	edges, err := g.GetEdges()
-	if err != nil {
-		return nil, err
-	}
+	edges := g.GetEdges()
 	for _, nodeEdges := range edges {
 		for _, e := range nodeEdges {
 			if err := gv.AddEdge(
