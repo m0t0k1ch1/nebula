@@ -295,3 +295,18 @@ func (g *Graph) GetOutdegreeDistribution() *DegreeDistribution {
 	}
 	return dist
 }
+
+func (g *Graph) GetNodesNum() int {
+	return len(g.nodes)
+}
+
+func (g *Graph) GetEdgesNum() int {
+	num := 0
+	for _, nodeEdges := range g.edges {
+		num += len(nodeEdges)
+	}
+	if !g.isDirected {
+		num /= 2
+	}
+	return num
+}

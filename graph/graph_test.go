@@ -201,6 +201,7 @@ func TestGraph_GetNode(t *testing.T) {
 func TestGraph_GetNodes(t *testing.T) {
 	n1 := newTestNode("1")
 	n2 := newTestNode("2")
+
 	expected := map[ID]*Node{n1.id: n1, n2.id: n2}
 	g := &Graph{
 		nodes: expected,
@@ -618,6 +619,7 @@ func TestGraph_GetEdges(t *testing.T) {
 	n1 := newTestNode("1")
 	n2 := newTestNode("2")
 	n3 := newTestNode("3")
+
 	expected := map[ID]map[ID]*Edge{
 		n1.id: {n2.id: newTestEdge(true, "1", "2", 1.2)},
 		n2.id: {n3.id: newTestEdge(true, "2", "3", 2.3)},
@@ -1282,4 +1284,76 @@ func TestGraph_GetOutdegreeDistribution(t *testing.T) {
 	actual := g.GetOutdegreeDistribution()
 	sort.Sort(actual)
 	testDegreeDistributionEquality(t, expected, actual)
+}
+
+func TestGraph_GetNodesNum(t *testing.T) {
+	n1 := newTestNode("1")
+	n2 := newTestNode("2")
+	n3 := newTestNode("3")
+
+	expected := 3
+	g := &Graph{
+		nodes: map[ID]*Node{n1.id: n1, n2.id: n2, n3.id: n3},
+	}
+
+	actual := g.GetNodesNum()
+	if actual != expected {
+		t.Errorf("expected: %d, actual: %d", expected, actual)
+	}
+}
+
+func TestGraph_GetEdgesNum(t *testing.T) {
+	type output struct {
+		num int
+	}
+
+	n1 := newTestNode("1")
+	n2 := newTestNode("2")
+	n3 := newTestNode("3")
+	e12 := newTestEdgeGenerator("1", "2")
+	e13 := newTestEdgeGenerator("1", "3")
+	e21 := newTestEdgeGenerator("2", "1")
+	e23 := newTestEdgeGenerator("2", "3")
+	e31 := newTestEdgeGenerator("3", "1")
+
+	testCases := []struct {
+		name  string
+		graph *Graph
+		out   output
+	}{
+		{
+			"success: directed",
+			&Graph{
+				isDirected: true,
+				edges: map[ID]map[ID]*Edge{
+					n1.id: {n2.id: e12(true, 1), n3.id: e13(true, 1)},
+					n2.id: {n3.id: e23(true, 1)},
+				},
+			},
+			output{3},
+		},
+		{
+			"success: undirected",
+			&Graph{
+				isDirected: false,
+				edges: map[ID]map[ID]*Edge{
+					n1.id: {n2.id: e12(false, 1), n3.id: e13(false, 1)},
+					n2.id: {n1.id: e21(false, 1)},
+					n3.id: {n3.id: e31(false, 1)},
+				},
+			},
+			output{2},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g, out := tc.graph, tc.out
+
+			num := g.GetEdgesNum()
+			if num != out.num {
+				t.Errorf("expected: %d, actual: %d", out.num, num)
+			}
+		})
+	}
 }
