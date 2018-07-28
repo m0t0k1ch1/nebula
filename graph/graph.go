@@ -58,11 +58,11 @@ func (g *Graph) GetNode(id ID) (*Node, error) {
 	return g.nodes[id], nil
 }
 
-func (g *Graph) GetNodes() (map[ID]*Node, error) {
+func (g *Graph) GetNodes() map[ID]*Node {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	return g.nodes, nil
+	return g.nodes
 }
 
 func (g *Graph) GetHeads(idTail ID) (map[ID]*Node, error) {
@@ -164,11 +164,11 @@ func (g *Graph) GetEdge(idTail, idHead ID) (*Edge, error) {
 	return g.edges[idTail][idHead], nil
 }
 
-func (g *Graph) GetEdges() (map[ID]map[ID]*Edge, error) {
+func (g *Graph) GetEdges() map[ID]map[ID]*Edge {
 	g.mu.RLock()
 	defer g.mu.RUnlock()
 
-	return g.edges, nil
+	return g.edges
 }
 
 func (g *Graph) addEdge(idTail, idHead ID, weight float64) {

@@ -206,10 +206,7 @@ func TestGraph_GetNodes(t *testing.T) {
 		nodes: expected,
 	}
 
-	actual, err := g.GetNodes()
-	if err != nil {
-		t.Fatal(err)
-	}
+	actual := g.GetNodes()
 	testNodesEquality(t, expected, actual)
 }
 
@@ -626,10 +623,7 @@ func TestGraph_GetEdges(t *testing.T) {
 		edges: expected,
 	}
 
-	actual, err := g.GetEdges()
-	if err != nil {
-		t.Fatal(err)
-	}
+	actual := g.GetEdges()
 	testEdgesEquality(t, expected, actual)
 }
 
