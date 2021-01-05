@@ -2,7 +2,7 @@
 
 [![GoDoc](https://godoc.org/github.com/m0t0k1ch1/nebula?status.svg)](https://godoc.org/github.com/m0t0k1ch1/nebula) [![wercker status](https://app.wercker.com/status/72e8e36a860b1f09f5e703b5b2a177b2/s/master "wercker status")](https://app.wercker.com/project/byKey/72e8e36a860b1f09f5e703b5b2a177b2) [![codecov](https://codecov.io/gh/m0t0k1ch1/nebula/branch/master/graph/badge.svg)](https://codecov.io/gh/m0t0k1ch1/nebula)
 
-a package to generate complex networks for Go
+a complex network generator for Go
 
 ## Examples
 
